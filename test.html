@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supabase Authentication Example</title>
+</head>
+
+<body>
+    <h1 style="text-align: center">Supabase Authentication Example</h1>
+
+    <h5>Select User From Drop Down</h5>
+    <select required>
+        <option value="None">--Select--</option>
+    </select>
+    </br>
+
+    <div style="height: 35px;"></div>
+
+    <button id="contactusButton">Get ContactUs</button>
+    <button id="messagesButton" >Get Messages</button>
+    <button id="documentsButton">Get Documents</button>
+
+    <script type="module">
+
+        var userTokenMap={}
+
+        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+        const SUPABASE_URL = "http://server9123.xite.io:8000";
+        const SUPABASE_PUBLIC_KEY =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY);
+
+        async function login(userId,password) {
+            const result = await _supabase.auth.signInWithPassword({
+                email: userId,
+                password: password,
+            });
+            console.log(result)
+        }
+
+        async function buildOptions() {
+            const { data, error } = await _supabase.from('user_detail').select('id,token')
+
+            if (error) {
+                console.error(error)
+                return
+            }
+
+            const selectOption = document.querySelector("select")
+
+            for (let i = 0; i < data.length; i++) {
+                const option = document.createElement("option")
+                option.setAttribute("value", `${data[i].id}@biz1.co.il`)
+                option.setAttribute("token", data[i].token)
+                option.textContent = `${data[i].id}`
+                selectOption.add(option)
+
+                userTokenMap[`${data[i].id}@biz1.co.il`]=data[i].token
+            }
+
+        }
+
+
+        buildOptions()
+
+
+        async function fetchData(table,limit) {
+
+            console.log(userTokenMap)
+
+            const opt=document.querySelector('select')
+
+            if (opt.value == "None"){
+                alert('Select user id from drop down menu')
+                return
+            }
+
+            await login(opt.value, userTokenMap[opt.value])
+
+            const { data, error } = await _supabase.from(table).select('*').limit(limit);
+            if (error) {
+                console.error("Error fetching data:",table, error);
+                return;
+            }
+            console.log(`Fetching Table ${table} with limit ${limit}`)
+            console.table(data)
+        }
+
+
+        document.getElementById('contactusButton').addEventListener("click",(k,e)=>{
+            fetchData('contactus',25)
+        })
+        document.getElementById('messagesButton').addEventListener("click",(k,e)=>{
+            fetchData('messages',25)
+        })
+        document.getElementById('documentsButton').addEventListener("click",(k,e)=>{
+            fetchData('documents',25)
+        })
+    </script>
+</body>
+
+</html>
